@@ -1,0 +1,6 @@
+{
+  "name": "Carson SA-500 Cruiser Siren",
+  "description": "Cruiser siren soundboard and professional synthesizer with Dual-Siren capabilities, custom audio uploads, and flexible keybindings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
