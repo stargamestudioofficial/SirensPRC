@@ -16,7 +16,7 @@ interface DualSirenProps {
   onCustomFileLoaded: (mode: string, channel: 'A' | 'B', fileId: string, name: string) => void;
   customMapping: Record<string, { id: string; name: string }>;
   clearCustomMapping: (mapKey: string) => void;
-  onLoadPresetProfile: (profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'yt_direct') => void;
+  onLoadPresetProfile: (profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'actual_sirens') => void;
 }
 
 export function DualSirenControls({
@@ -61,9 +61,9 @@ export function DualSirenControls({
       yelpHz: 4.8,
       phaserHz: 19.5,
     },
-    yt_direct: {
-      name: 'YouTube Direct (yIS9KuxCFF8)',
-      desc: 'Extracted direct recording features of yIS9KuxCFF8 with authentic concrete slapback reflections, proximity bass boom, and voice-coil saturation.',
+    actual_sirens: {
+      name: 'Actual Sirens',
+      desc: 'Authentic, raw concrete slapback reflections, extreme voice-coil driver clipping, analog slow-rise charging sweeps, and heavy sub-rumbler bass sweeps.',
       wailHz: 485,
       yelpHz: 4.8,
       phaserHz: 19.5,
@@ -107,7 +107,7 @@ export function DualSirenControls({
       setSpeedA(0.95);      // Slow, commanding wail A
       setSpeedB(1.22);      // Intense, rapid yelp B
       setSpeakerSat(true);   // Raw saturated driver
-    } else if (key === 'yt_direct') {
+    } else if (key === 'actual_sirens') {
       setPitchOffsetA(-115); // Deep base capture offset A
       setPitchOffsetB(45);   // High frequency reflection B
       setSpeedA(0.95);       // Slower heavier analog rise A

@@ -193,14 +193,14 @@ export default function App() {
     });
   };
 
-  const handleLoadPresetProfile = (profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'yt_direct') => {
+  const handleLoadPresetProfile = (profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'actual_sirens') => {
     // 1. Initialize and synthesize buffers programmatically for chosen profile
     engine.loadProfilePresetClipsAndMap(profile);
 
     const names = {
       carson: 'Carson SA-500 Preset',
       ttps: 'Trinidad Police Preset',
-      yt_direct: 'yIS9KuxCFF8 Direct Preset',
+      actual_sirens: 'Actual Sirens Preset',
       erlc: 'Calibrated ERLC Preset',
       fivem: 'FiveM Custom Preset',
       chp: 'CHP California Preset'

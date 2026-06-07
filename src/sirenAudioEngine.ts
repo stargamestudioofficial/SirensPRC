@@ -20,6 +20,12 @@ export class SirenChannel {
   manualOsc: OscillatorNode | null = null;
   manualGain: GainNode | null = null;
   manualActive: boolean = false;
+  
+  // Manual tuning parameters
+  manualMinHz: number = 80;
+  manualMaxHz: number = 1380;
+  manualRiseTime: number = 1.1;
+  manualFallTime: number = 2.3;
 
   // Uploaded buffer players
   bufferSource: AudioBufferSourceNode | null = null;
@@ -335,7 +341,7 @@ export class SirenChannel {
         try {
           this.manualOsc = this.ctx.createOscillator();
           this.manualOsc.type = 'triangle';
-          this.manualOsc.frequency.setValueAtTime(120, now);
+          this.manualOsc.frequency.setValueAtTime(this.manualMinHz, now);
           
           this.manualOsc.connect(this.manualGain!);
           this.manualOsc.start(now);
@@ -347,17 +353,18 @@ export class SirenChannel {
       if (this.manualOsc) {
         try {
           this.manualOsc.frequency.cancelScheduledValues(now);
-          this.manualOsc.frequency.setTargetAtTime(1380 + this.pitchOffset, now, 1.1);
+          this.manualOsc.frequency.setTargetAtTime(this.manualMaxHz + this.pitchOffset, now, this.manualRiseTime);
         } catch (e) {}
       }
     } else {
       if (this.manualOsc) {
         try {
           this.manualOsc.frequency.cancelScheduledValues(now);
-          this.manualOsc.frequency.setTargetAtTime(80, now, 2.3);
+          this.manualOsc.frequency.setTargetAtTime(this.manualMinHz, now, this.manualFallTime);
         } catch (e) {}
 
         const currentOsc = this.manualOsc;
+        const delayMs = Math.round(this.manualFallTime * 1000 * 3.5); // Ensure it finishes winding down completely
         setTimeout(() => {
           if (!this.manualActive && this.manualOsc === currentOsc) {
             try { currentOsc.stop(); } catch(e){}
@@ -366,7 +373,7 @@ export class SirenChannel {
               this.manualOsc = null;
             }
           }
-        }, 4500);
+        }, delayMs);
       }
     }
 
@@ -429,6 +436,7 @@ export class SirenAudioEngine {
   isCabinSimEnabled: boolean = false;
   isDualSirenActive: boolean = false;
   isContinuousLoop: boolean = false; // continuous looping flag synced with UI
+  private silentAudio: HTMLAudioElement | null = null;
 
   private constructor() {}
 
@@ -437,6 +445,29 @@ export class SirenAudioEngine {
       SirenAudioEngine.instance = new SirenAudioEngine();
     }
     return SirenAudioEngine.instance;
+  }
+
+  startBackgroundKeepAlive() {
+    if (this.silentAudio) {
+      // Direct play attempt if paused
+      try {
+        this.silentAudio.play().catch(() => {});
+      } catch (e) {}
+      return;
+    }
+    try {
+      this.silentAudio = new Audio();
+      this.silentAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACAAQAZGF0YQQAAAAAAA==";
+      this.silentAudio.loop = true;
+      this.silentAudio.volume = 0.05;
+      this.silentAudio.play().then(() => {
+        console.log("Background media keep-alive running successfully via looping audio channel");
+      }).catch(e => {
+        console.warn("Background audio keep-alive autoplay blocked by browser, retrying on gesture", e);
+      });
+    } catch (e) {
+      console.warn("Failed to create background media keep-alive", e);
+    }
   }
 
   async init() {
@@ -491,12 +522,14 @@ export class SirenAudioEngine {
       this.masterGain.connect(this.cabinReflectionDelay);
 
       this.initialized = true;
+      this.startBackgroundKeepAlive();
     } catch (e) {
       console.error("Failed to initialize Web Audio Engine", e);
     }
   }
 
   async resume() {
+    this.startBackgroundKeepAlive();
     if (this.ctx && this.ctx.state === 'suspended') {
       try {
         await this.ctx.resume();
@@ -528,7 +561,7 @@ export class SirenAudioEngine {
   }
 
   // Generates highly accurate standalone synthetic warning buffers with high-fidelity curves!
-  generateProfilePresetBuffer(type: 'wail' | 'yelp' | 'phsr' | 'horn', profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'yt_direct'): AudioBuffer {
+  generateProfilePresetBuffer(type: 'wail' | 'yelp' | 'phsr' | 'horn', profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'actual_sirens'): AudioBuffer {
     const sampleRate = this.ctx?.sampleRate || 44100;
     
     // Default durations
@@ -547,7 +580,7 @@ export class SirenAudioEngine {
       if (type === 'yelp') duration = 0.22; // Quick, hyper intersection Yelp
       if (type === 'phsr') duration = 0.051; // High active laser phaser (about 19 cycles/sec)
       if (type === 'horn') duration = 1.8; // Long deep airhorn with active rumbler sub-oscillator
-    } else if (profile === 'yt_direct') {
+    } else if (profile === 'actual_sirens') {
       if (type === 'wail') duration = 5.25; // Continuous sweeping analog dual-coupling sweep
       if (type === 'yelp') duration = 0.208; // High active staccato chirp loops
       if (type === 'phsr') duration = 0.051; // 19.5Hz real speaker fluttering
@@ -592,8 +625,8 @@ export class SirenAudioEngine {
           const sweepT = Math.pow((Math.sin(2 * Math.PI * cycleT - Math.PI / 2) + 1) / 2, 1.1);
           const feedback = 1.0 + 0.02 * Math.sin(2 * Math.PI * 4 * t); // subtle acoustic speaker shake
           freq = (460 + sweepT * 700) * feedback; // Trinidad police wail: extra deep low rumble (460Hz to 1160Hz)
-        } else if (profile === 'yt_direct') {
-          // Synthesized direct from yIS9KuxCFF8 (Trinidad police mic capture)
+        } else if (profile === 'actual_sirens') {
+          // Synthesized direct from actual siren capturing
           // Features accurate Carson frequency profile 485Hz to 1340Hz with analog slow-curve
           const cycleT = (t % duration) / duration;
           let sweepT = 0;
@@ -623,7 +656,7 @@ export class SirenAudioEngine {
           const cycleT = (t % duration) / duration;
           const sweepT = cycleT < 0.12 ? (cycleT / 0.12) * 0.08 : 0.08 + ((cycleT - 0.12) / 0.88) * 0.92;
           freq = 440 + sweepT * 820; // 440Hz to 1260Hz range
-        } else if (profile === 'yt_direct') {
+        } else if (profile === 'actual_sirens') {
           // Highly aggressive analog-sweep chirp
           const cycleT = (t % duration) / duration;
           const sweepT = Math.pow(cycleT, 1.22);
@@ -643,7 +676,7 @@ export class SirenAudioEngine {
           // Extremely sharp "staccato laser" phaser sweep
           const sweepT = (t % duration) / duration;
           freq = 580 + Math.pow(sweepT, 1.7) * 920; 
-        } else if (profile === 'yt_direct') {
+        } else if (profile === 'actual_sirens') {
           const sweepT = (t % duration) / duration;
           freq = 560 + Math.pow(sweepT, 1.62) * 940;
         } else {
@@ -662,7 +695,7 @@ export class SirenAudioEngine {
           const rawSig = (s1 * 0.42 + s2 * 0.38 + s3 * 0.28 + s4 * 0.12 + noise * 0.11);
           data[i] = Math.tanh(rawSig * 2.8) * 0.72;
           continue;
-        } else if (profile === 'ttps' || profile === 'yt_direct') {
+        } else if (profile === 'ttps' || profile === 'actual_sirens') {
           // Trinidad rumbler-backed electronic horn! Shakes floorboards with 55Hz sub-bass, with dirty metallic squeal
           const subBass = Math.sin(2 * Math.PI * 55 * t);
           const fundamental = Math.sin(2 * Math.PI * 110 * t);
@@ -674,7 +707,7 @@ export class SirenAudioEngine {
           // High-pressure square compression
           const dryVal = Math.sign(rawSig) * (1.0 - Math.exp(-Math.abs(rawSig * 3.3))) * 0.78;
 
-          if (profile === 'yt_direct') {
+          if (profile === 'actual_sirens') {
             const delaySamples = Math.round(sampleRate * 0.062);
             const feedback = 0.38;
             let echoVal = dryVal;
@@ -701,7 +734,7 @@ export class SirenAudioEngine {
       let rawWave = Math.sin(phase);
 
       // Add subtle sideband harmonics to simulate mechanical horn coil buzz in direct mode
-      if (profile === 'yt_direct') {
+      if (profile === 'actual_sirens') {
         rawWave = rawWave * 0.85 + 0.15 * Math.sin(2 * phase);
       }
       
@@ -712,7 +745,7 @@ export class SirenAudioEngine {
       } else if (profile === 'ttps') {
         const hardClipping = Math.sign(rawWave) * (1.05 - Math.exp(-Math.abs(rawWave * 3.2)));
         outVal = hardClipping * 0.72;
-      } else if (profile === 'yt_direct') {
+      } else if (profile === 'actual_sirens') {
         // Asymmetric microphonic distortion modeling close phone-mic camera pre-amp clipping
         const gainScaled = rawWave * 3.8;
         let clamped = Math.tanh(gainScaled);
@@ -725,7 +758,7 @@ export class SirenAudioEngine {
       }
 
       // Environmental acoustic slapback delay modelling actual video surroundings reflection
-      if (profile === 'yt_direct') {
+      if (profile === 'actual_sirens') {
         const delaySamples = Math.round(sampleRate * 0.062);
         const feedback = 0.38;
         let echoVal = outVal;
@@ -742,7 +775,7 @@ export class SirenAudioEngine {
   }
 
   // Populates Custom Preset AudioBuffers directly for a chosen profile!
-  loadProfilePresetClipsAndMap(profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'yt_direct') {
+  loadProfilePresetClipsAndMap(profile: 'carson' | 'ttps' | 'erlc' | 'fivem' | 'chp' | 'actual_sirens') {
     try {
       const wBuffer = this.generateProfilePresetBuffer('wail', profile);
       const yBuffer = this.generateProfilePresetBuffer('yelp', profile);
@@ -760,6 +793,39 @@ export class SirenAudioEngine {
       this.uploadedBuffers.set('B_yelp', yBuffer);
       this.uploadedBuffers.set('B_phsr', pBuffer);
       this.uploadedBuffers.set('B_horn', hBuffer);
+
+      // Set profile-specific manual settings
+      let minHz = 80;
+      let maxHz = 1380;
+      let riseTime = 1.1;
+      let fallTime = 2.3;
+
+      if (profile === 'carson') {
+        minHz = 110; maxHz = 1420; riseTime = 1.1; fallTime = 2.4;
+      } else if (profile === 'ttps') {
+        minHz = 55; maxHz = 1160; riseTime = 0.95; fallTime = 3.6;
+      } else if (profile === 'actual_sirens') {
+        minHz = 75; maxHz = 1340; riseTime = 0.92; fallTime = 2.8;
+      } else if (profile === 'erlc') {
+        minHz = 85; maxHz = 1250; riseTime = 1.0; fallTime = 2.0;
+      } else if (profile === 'fivem') {
+        minHz = 90; maxHz = 1450; riseTime = 0.75; fallTime = 1.6;
+      } else if (profile === 'chp') {
+        minHz = 60; maxHz = 1200; riseTime = 1.8; fallTime = 4.8;
+      }
+
+      if (this.sirenA) {
+        this.sirenA.manualMinHz = minHz;
+        this.sirenA.manualMaxHz = maxHz;
+        this.sirenA.manualRiseTime = riseTime;
+        this.sirenA.manualFallTime = fallTime;
+      }
+      if (this.sirenB) {
+        this.sirenB.manualMinHz = minHz;
+        this.sirenB.manualMaxHz = maxHz;
+        this.sirenB.manualRiseTime = riseTime;
+        this.sirenB.manualFallTime = fallTime;
+      }
     } catch (e) {
       console.warn(`Unable to preload ${profile} presets synthetically`, e);
     }

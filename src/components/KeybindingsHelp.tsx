@@ -69,6 +69,25 @@ export function KeybindingsHelp() {
               Real trooper cruisers play dual sounds slightly out of phase to maximize pedestrian alarm distance. To configure this: toggle <strong className="text-[#1a1a1a]">DUAL-TONE</strong> on, switch to <strong className="text-[#1a1a1a]">WAIL</strong> mode, and adjust Siren Speaker B's sweep speed to <strong className="text-[#1a1a1a]">1.08x</strong>. You will hear an incredibly realistic phasing rumble!
             </p>
           </div>
+
+          <div className="border-t border-[#E5E7EB] pt-3">
+            <div className="flex items-center gap-1.5 text-blue-700 font-bold mb-1.5 font-sans">
+              <MonitorPlay size={14} className="text-blue-700" />
+              <span>Active Background Playback & PC App Install</span>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-relaxed font-sans mb-2">
+              🔊 <strong className="text-[#1a1a1a]">Continuous Background Playback</strong>: We've integrated a looping sub-audible media anchor stream. Sirens now keep playing perfectly in the background when you swap tabs, focus on Roblox ERLC, or minimize your browser!
+            </p>
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+              <span className="text-[11px] font-bold text-blue-900 block mb-1">💻 How to play as a PC App:</span>
+              <ol className="text-[10px] text-blue-800 list-decimal list-inside flex flex-col gap-1 leading-normal font-sans">
+                <li>Load this warning suite in <strong className="text-blue-950">Google Chrome</strong> or <strong className="text-blue-950">Microsoft Edge</strong>.</li>
+                <li>Press the <strong className="text-blue-950">three dots menu [⋮]</strong> in the top-right corner.</li>
+                <li>Go to <strong className="text-blue-950">Save and share</strong> &rarr; click <strong className="text-blue-950">Install page as app</strong>.</li>
+                <li>Pin it to your Desktop or Taskbar. It now runs as a lightweight standalone application!</li>
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
     </div>
